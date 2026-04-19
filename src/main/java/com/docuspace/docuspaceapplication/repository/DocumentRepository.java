@@ -22,4 +22,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
       )
 """)
     List<Document> searchDocuments(Long userId, String query);
+
+    Optional<Document> findByIdAndWorkspaceOwnerId(Long id, Long ownerId);
 }
