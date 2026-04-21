@@ -19,6 +19,7 @@ COPY src src
 # Build jar
 RUN ./mvnw clean package -DskipTests
 
+ARG JAR_FILE=target/DocuSpaceApplication-0.0.1-SNAPSHOT.jar
 # Extract Spring Boot layers
 RUN java -Djarmode=tools -jar target/*.jar extract --layers --destination extracted
 
