@@ -18,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiJobService {
@@ -29,8 +30,10 @@ public class AiJobService {
     private final AiDocumentCacheService aiDocumentCacheService;
     private final AiJobProcessor aiJobProcessor;
     private final ObjectMapper objectMapper;
+    private final AiJobDispatcher aiJobDispatcher;
 
     public AiJobCreatedResponse createSummaryJob(Long documentId, Long userId) {
+        log.info("Creating summary AI job. documentId={}, userId={}", documentId, userId);
         Document document = documentAiService.loadOwnedDocument(documentId, userId);
 
         String contentHash = aiDocumentCacheService.buildContentHash(
@@ -51,6 +54,8 @@ public class AiJobService {
         job.setUpdatedAt(LocalDateTime.now());
 
         if (cachedResponse != null) {
+            log.info("Summary AI cache hit. documentId={}, userId={}, contentHash={}",
+                    documentId, userId, contentHash);
             job.setStatus(AiJobStatus.COMPLETED);
             job.setCompletedAt(LocalDateTime.now());
             job.setResultJson(writeJson(cachedResponse));
@@ -61,10 +66,24 @@ public class AiJobService {
 
         job.setStatus(AiJobStatus.PENDING);
         aiJobRepository.save(job);
+        log.info("Created summary AI job. jobId={}, documentId={}, userId={}, status={}",
+                job.getId(), documentId, userId, job.getStatus());
+
+//        try {
+//            aiJobProcessor.processSummaryJobAsync(job.getId());
+//        } catch (Exception ex) {
+//            job.setStatus(AiJobStatus.FAILED);
+//            job.setErrorMessage("System is busy. Please try again.");
+//            job.setUpdatedAt(LocalDateTime.now());
+//            aiJobRepository.save(job);
+//        }
 
         try {
-            aiJobProcessor.processSummaryJobAsync(job.getId());
+            log.info("Dispatching summary AI job to queue. jobId={}, documentId={}",
+                    job.getId(), documentId);
+            aiJobDispatcher.dispatch(job.getId());
         } catch (Exception ex) {
+            log.error("Failed to dispatch summary AI job. jobId={}", job.getId(), ex);
             job.setStatus(AiJobStatus.FAILED);
             job.setErrorMessage("System is busy. Please try again.");
             job.setUpdatedAt(LocalDateTime.now());
@@ -75,7 +94,10 @@ public class AiJobService {
     }
 
     public AiJobCreatedResponse createRewriteJob(Long documentId, Long userId, String mode) {
+
         String normalizedMode = documentAiService.normalizeRewriteMode(mode);
+        log.info("Creating rewrite AI job. documentId={}, userId={}, mode={}",
+                documentId, userId, normalizedMode);
 
         Document document = documentAiService.loadOwnedDocument(documentId, userId);
 
@@ -97,6 +119,8 @@ public class AiJobService {
         job.setUpdatedAt(LocalDateTime.now());
 
         if (cachedResponse != null) {
+            log.info("Rewrite AI cache hit. documentId={}, userId={}, mode={}, contentHash={}",
+                    documentId, userId, normalizedMode, contentHash);
             job.setStatus(AiJobStatus.COMPLETED);
             job.setCompletedAt(LocalDateTime.now());
             job.setResultJson(writeJson(cachedResponse));
@@ -107,10 +131,24 @@ public class AiJobService {
 
         job.setStatus(AiJobStatus.PENDING);
         aiJobRepository.save(job);
+        log.info("Created rewrite AI job. jobId={}, documentId={}, userId={}, mode={}, status={}",
+                job.getId(), documentId, userId, normalizedMode, job.getStatus());
+
+//        try {
+//            aiJobProcessor.processRewriteJobAsync(job.getId());
+//        } catch (Exception ex) {
+//            job.setStatus(AiJobStatus.FAILED);
+//            job.setErrorMessage("System is busy. Please try again.");
+//            job.setUpdatedAt(LocalDateTime.now());
+//            aiJobRepository.save(job);
+//        }
 
         try {
-            aiJobProcessor.processRewriteJobAsync(job.getId());
+            log.info("Dispatching rewrite AI job to queue. jobId={}, documentId={}, mode={}",
+                    job.getId(), documentId, normalizedMode);
+            aiJobDispatcher.dispatch(job.getId());
         } catch (Exception ex) {
+            log.error("Failed to dispatch rewrite AI job. jobId={}", job.getId(), ex);
             job.setStatus(AiJobStatus.FAILED);
             job.setErrorMessage("System is busy. Please try again.");
             job.setUpdatedAt(LocalDateTime.now());

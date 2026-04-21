@@ -40,7 +40,6 @@ public class AiJobController {
             @Valid @RequestBody CreateRewriteJobRequest request
     ) {
         User currentUser = authenticatedUserService.getCurrentUser();
-        log.info("inside 4");
         return aiJobService.createRewriteJob(
                 request.documentId(),
                 currentUser.getId(),

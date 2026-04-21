@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: docuspace
+  cloud:
+    aws:
+      sqs:
+        queue-not-found-strategy: FAIL
+      region:
+        static: us-east-1
+
+app:
+  ai:
+    jobs:
+      queue-name: docuspace-ai-jobs
+
+logging:
+  level:
+    com.docuspace.docuspaceapplication.service.ai: INFO
+    com.docuspace.docuspaceapplication.worker: INFO
