@@ -3,20 +3,24 @@ FROM maven:3.9.9-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
-# Copy Maven wrapper + pom first for better dependency caching
+# Copy Maven wrapper + pom first (cache optimization)
 COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
 
 RUN chmod +x mvnw
 
-# Download dependencies first
-RUN ./mvnw dependency:go-offline
+# Download dependencies
+RUN ./mvnw -q dependency:go-offline
 
-# Copy source code and build
+# Copy source
 COPY src src
 
+# Build jar
 RUN ./mvnw clean package -DskipTests
+
+# Extract Spring Boot layers
+RUN java -Djarmode=tools -jar target/*.jar extract --layers --destination extracted
 
 
 # ---------- Runtime stage ----------
@@ -24,12 +28,21 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Run as non-root user
+# Create non-root user
 RUN useradd -r -u 1001 springuser
 USER springuser
 
-COPY --from=builder /app/target/*.jar app.jar
+# Copy layers (better caching)
+COPY --from=builder /app/extracted/dependencies/ ./
+COPY --from=builder /app/extracted/spring-boot-loader/ ./
+COPY --from=builder /app/extracted/snapshot-dependencies/ ./
+COPY --from=builder /app/extracted/application/ ./
+
+# Environment defaults (can be overridden in ECS)
+ENV JAVA_OPTS=""
+ENV SPRING_PROFILES_ACTIVE=api
+ENV SERVER_PORT=8080
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]

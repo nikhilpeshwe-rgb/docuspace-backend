@@ -3,7 +3,8 @@ target
 .gitignore
 .idea
 .vscode
+*.iml
+Dockerfile*
+docker-compose*
 README.md
-HELP.md
 .env
-*.log
