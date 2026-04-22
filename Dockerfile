@@ -34,10 +34,7 @@ RUN useradd -r -u 1001 springuser
 USER springuser
 
 # Copy layers (better caching)
-COPY --from=builder /app/extracted/dependencies/ ./
-COPY --from=builder /app/extracted/spring-boot-loader/ ./
-COPY --from=builder /app/extracted/snapshot-dependencies/ ./
-COPY --from=builder /app/extracted/application/ ./
+COPY --from=builder /app/target/*.jar app.jar
 
 # Environment defaults (can be overridden in ECS)
 ENV JAVA_OPTS=""
@@ -46,4 +43,4 @@ ENV SERVER_PORT=8080
 
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
