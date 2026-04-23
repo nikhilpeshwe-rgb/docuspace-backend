@@ -62,7 +62,7 @@ DLQ
 ## 🌐 Frontend Repository
 
 Frontend code is available here:  
-👉 https://github.com/yourname/docuspace-frontend
+👉 https://github.com/nikhilpeshwe-rgb/docuspace-frontend
 
 ---
 
